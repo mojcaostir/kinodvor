@@ -1,9 +1,6 @@
 package htmlService
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/mojcaostir/kinodvor/crawlerService"
 )
 
@@ -50,33 +47,14 @@ func GenerateHTML(schedules []crawlerService.Schedule) string {
         }
 	}
 
-	var htmlBuilder strings.Builder
-	
-	htmlBuilder.WriteString("<html><body>")
-	htmlBuilder.WriteString("<h1>Kinodvor Spored</h1>")
-	htmlBuilder.WriteString("<table border='1'>")
-	htmlBuilder.WriteString("<tr><th>Dan</th><th>Ura</th><th>Naslov</th><th>Režiser</th></tr>")
+    html := "<html><body>"
+    for _, daySchedule := range daySchedules {
+        html += "<h1>" + daySchedule.Day + "</h1>"
+        for _, data := range daySchedule.DayData {
+            html += "<p>" + data.Time + " - <a href='" + data.Link + "'>" + data.Title + "</a> (režija: " + data.Author + ")</p>"
+        }
+    }
+    html += "</body></html>"
 
-	for _, schedule := range daySchedules {
-		var span = len(schedule.DayData)
-		htmlBuilder.WriteString("<tr>")
-		htmlBuilder.WriteString(fmt.Sprintf("<th rowspan='%d'>%s</th>", span, schedule.Day))
-		var time string
-		var title string
-		var author string
-		for i := 0; i < span; i++  {
-			scheduleData := schedule.DayData[i]
-			time = fmt.Sprintf("<td>%s</td>", scheduleData.Time)
-			title = fmt.Sprintf("<td><a href='%s'>%s</a></td>",scheduleData.Link, scheduleData.Title)
-			author = fmt.Sprintf("<td>%s</td>", scheduleData.Author)
-			htmlBuilder.WriteString(time+title+author)
-			htmlBuilder.WriteString("</tr>")
-		}
-		htmlBuilder.WriteString("</tr>")
-	}
-
-	htmlBuilder.WriteString("</table>")
-	htmlBuilder.WriteString("</body></html>")
-
-	return htmlBuilder.String()
+	return html
 }

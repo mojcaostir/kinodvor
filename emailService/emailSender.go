@@ -1,33 +1,36 @@
 package emailService
 
 import (
-    "fmt"
-    "net/smtp"
-    "os"
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
-func SendEmail(to, subject, body string) {
-    from := os.Getenv("EMAIL_FROM")
-    password := os.Getenv("EMAIL_PASSWORD")
+func SendEmail(recipients, subject, body string) error {
+    from := mail.NewEmail("Mojca Oštir", os.Getenv("SENDGRID_FROM"))
+    client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
 
-    // SMTP server configuration.
-    smtpHost := "smtp.gmail.com"
-    smtpPort := "587"
 
-    // Message.
-    message := []byte("MIME-Version: 1.0\r\n" +
-        "Content-Type: text/html; charset=\"UTF-8\"\r\n" +
-        "Subject: " + subject + "\r\n" +
-        "\r\n" + body + "\r\n")
-
-    // Authentication.
-    auth := smtp.PlainAuth("", from, password, smtpHost)
-
-    // Sending email.
-    err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{to}, message)
-    if err != nil {
-        fmt.Println("Error sending email:", err)
-        return
+    recipientList := strings.Split(recipients, ",")
+    for _, recipient := range recipientList {
+        emailParts := strings.Split(recipient, "@")
+        if len(emailParts) != 2 {
+            return fmt.Errorf("invalid email address: %s", recipient)
+        }
+        name := emailParts[0]
+        to := mail.NewEmail(name, recipient)
+        message := mail.NewSingleEmail(from, subject, to, body, body)
+        response, err := client.Send(message)
+        if err != nil {
+            return fmt.Errorf("error sending email: %w", err)
+        }
+        if response.StatusCode >= 400 {
+            return fmt.Errorf("failed to send email: %s", response.Body)
+        }
     }
     fmt.Println("Email sent successfully")
+    return nil
 }
